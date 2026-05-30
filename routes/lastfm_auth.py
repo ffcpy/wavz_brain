@@ -4,7 +4,7 @@ import requests
 import hashlib
 import os
 from dotenv import load_dotenv
-from services.db_service import conn
+from services.db_service import get_conn
 
 load_dotenv()
 
@@ -52,7 +52,7 @@ def lastfm_callback(request: Request):
     username = data["session"]["name"]
 
     #save ou atz db 
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("SELECT spotify_id FROM users WHERE spotify_id = %s", (username,))
     existing = cursor.fetchone()
 
@@ -66,7 +66,7 @@ def lastfm_callback(request: Request):
             INSERT INTO users (spotify_id, nome, access_token, refresh_token, is_active)
             VALUES (%s, %s, %s, '', TRUE)
         """, (username, username, session_key))
-        conn.commit()
+        get_conn().commit()
         cursor.close()
 
         return {

@@ -82,7 +82,23 @@ def musica_atual_data(spotify_id: str):
 
 @router.get("/musica_atual")
 def musica_atual(spotify_id: str):
-    return musica_atual_data(spotify_id)
+    access_token = get_valid_access_token(spotify_id)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get("https://api.spotify.com/v1/me/player/currently-playing", headers=headers)
+    if response.status_code == 204:
+        return {"musica": "Nenhuma música tocando"}
+    if response.status_code != 200:
+        return {"erro": response.status_code}
+    data = response.json()
+    if not data or "item" not in data:
+        return {"musica": "Nenhuma música tocando"}
+    return {
+        "musica": data["item"]["name"],
+        "artista": data["item"]["artists"][0]["name"],
+        "album": data["item"]["album"]["name"],
+        "capa_url": data["item"]["album"]["images"][0]["url"] if data["item"]["album"]["images"] else None,
+        "spotify_url": data["item"]["external_urls"]["spotify"]
+    }
 
 
 @router.get("/nearby_users")

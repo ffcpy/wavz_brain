@@ -1,6 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
-from services.db_service import conn, get_valid_access_token
+from services.db_service import get_conn, get_valid_access_token
 import requests
 import math
 
@@ -16,7 +16,7 @@ def haversine(lat1, lng1, lat2, lng2):
 
 
 def get_territory(lat, lng):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("SELECT id, lat_centro, long_centro, raio_metros FROM territories")
     territories = cursor.fetchall()
     cursor.close()
@@ -27,7 +27,7 @@ def get_territory(lat, lng):
     return None
     
 def get_or_create_wave(territory_id, artista):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("""
         SELECT id FROM waves
         WHERE territory_id = %s AND artista = %s AND ativa = TRUE
@@ -48,7 +48,7 @@ def get_or_create_wave(territory_id, artista):
             INSERT INTO waves (territory_id, artista, total_users, score, last_activity, ativa)
             VALUES (%s, %s, 0, 0, %s, TRUE)
         """, (territory_id, artista, datetime.now()))
-        conn.commit()
+        get_conn().commit()
         wave_id = cursor.lastrowid
         cursor.close()
         notify_wave_em_alta(wave_id, territory_id, artista)  # ← adiciona aqui
@@ -57,7 +57,7 @@ def get_or_create_wave(territory_id, artista):
 
 
 def upsert_wave_member(wave_id, spotify_id):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("""
     SELECT id FROM wave_members WHERE wave_id = %s AND spotify_id = %s
     """, (wave_id, spotify_id))
@@ -89,24 +89,24 @@ def upsert_wave_member(wave_id, spotify_id):
           wave_id, datetime.now() - timedelta(minutes=1),
           datetime.now(), wave_id))
         
-    conn.commit()
+    get_conn().commit()
     cursor.close()
                        
 
 def kill_inactive_waves():
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute(""" 
                    UPDATE waves SET ativa = FALSE
                    WHERE ativa = TRUE AND last_activity < %s
                    """, (datetime.now() - timedelta(minutes=5),))
-    conn.commit()
+    get_conn().commit()
     cursor.close()
 
 
 # --- Job principal: roda a cada 30s ---
 def job_collect():
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Rodando coleta...")
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("SELECT spotify_id FROM users WHERE is_active = TRUE")
     users = cursor.fetchall()
     cursor.close()
@@ -130,17 +130,19 @@ def job_collect():
 
             musica = data["item"]["name"]
             artista = data["item"]["artists"][0]["name"]
+            capa_url = data["item"]["album"]["images"][0]["url"] if data["item"]["album"]["images"] else None
+            spotify_url = data["item"]["external_urls"]["spotify"]
 
             # Por enquanto latitude/longitude fixas — virão do front futuramente
             lat, lng = -23.5611, -46.6558
 
             # Salva em stats
-            cursor = conn.cursor()
+            cursor = get_conn().cursor()
             cursor.execute("""
-                INSERT INTO stats (spotify_id, music, artist, latitude, longitude)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (spotify_id, musica, artista, lat, lng))
-            conn.commit()
+    INSERT INTO stats (spotify_id, music, artist, latitude, longitude, capa_url, spotify_url)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+""", (spotify_id, musica, artista, lat, lng, capa_url, spotify_url))
+            get_conn().commit()
             cursor.close()
 
             # Verifica território e wave
@@ -155,6 +157,7 @@ def job_collect():
 
     kill_inactive_waves()
     kill_users()
+    suggest_friendships()
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Coleta finalizada.")
 
 
@@ -167,7 +170,7 @@ def start_scheduler():
     
         
 def kill_users(): #nao matar ususarios literalmente pfvr
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute(""" 
         UPDATE users SET is_active = FALSE
         WHERE spotify_id NOT IN (
@@ -175,11 +178,11 @@ def kill_users(): #nao matar ususarios literalmente pfvr
             WHERE timestampp >= %s
                 )
     """, (datetime.now() - timedelta(minutes=10),))
-    conn.commit()
+    get_conn().commit()
     cursor.close()
 
 
-    def get_lastfm_c_playing(username, session_key):
+def get_lastfm_c_playing(username, session_key):
         params = {
             "method": "user.getrecenttracks",
             "user": username,
@@ -204,7 +207,7 @@ def kill_users(): #nao matar ususarios literalmente pfvr
 
 
 def notify_wave_em_alta(wave_id, territory_id, artista):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
 
     # Busca usuários ativos no território que não estão na wave
     cursor.execute("""
@@ -237,9 +240,74 @@ def notify_wave_em_alta(wave_id, territory_id, artista):
                 f"Uma wave de {artista} está rolando perto de você. Deseja entrar?"
             ))
 
-    conn.commit()
+    get_conn().commit()
     cursor.close()
 
+def suggest_friendships():
+        cursor = get_conn().cursor()
+        
+        # Busca todos os usuários ativos com localização
+        cursor.execute("""
+            SELECT u.spotify_id, u.latitude, u.longitude, s.artist
+            FROM users u
+            JOIN stats s ON s.spotify_id = u.spotify_id
+            WHERE u.is_active = TRUE
+            AND u.latitude IS NOT NULL
+            AND s.timestampp >= NOW() - INTERVAL 2 MINUTE
+            GROUP BY u.spotify_id, u.latitude, u.longitude, s.artist
+        """)
+        users = cursor.fetchall()
+        cursor.close()
 
-            
+        for i, (id1, lat1, lng1, artist1) in enumerate(users):
+            for id2, lat2, lng2, artist2 in users[i+1:]:
+                # mesmo artista
+                if artist1 != artist2:
+                    continue
+                # dentro de 2000m
+                if haversine(lat1, lng1, lat2, lng2) > 2000:
+                    continue
+                # já são amigos ou já tem notificação recente
+                cursor = get_conn().cursor()
+                cursor.execute("""
+                    SELECT id FROM friends
+                    WHERE (spotify_id = %s AND friend_id = %s)
+                    OR (spotify_id = %s AND friend_id = %s)
+                """, (id1, id2, id2, id1))
+                if cursor.fetchone():
+                    cursor.close()
+                    continue
+                cursor.execute("""
+                    SELECT id FROM notifications
+                    WHERE spotify_id = %s AND tipo = 'amigo_sugestao'
+                    AND mensagem LIKE %s
+                    AND created_at >= NOW() - INTERVAL 30 MINUTE
+                """, (id1, f'%{id2}%'))
+                if cursor.fetchone():
+                    cursor.close()
+                    continue
+
+                # busca nomes
+                cursor.execute("SELECT nome FROM users WHERE spotify_id = %s", (id2,))
+                r = cursor.fetchone()
+                nome2 = r[0] if r else id2
+                cursor.execute("SELECT nome FROM users WHERE spotify_id = %s", (id1,))
+                r = cursor.fetchone()
+                nome1 = r[0] if r else id1
+
+                # cria notificação pros dois
+                for (dest, outro_id, outro_nome) in [(id1, id2, nome2), (id2, id1, nome1)]:
+                    cursor.execute("""
+                        INSERT INTO notifications (spotify_id, tipo, titulo, mensagem)
+                        VALUES (%s, 'amigo_sugestao', %s, %s)
+                    """, (
+                        dest,
+                        f"Você e {outro_nome} estão na mesma vibe!",
+                        f"{outro_nome}|{outro_id}|{artist1}"
+                    ))
+                get_conn().commit()
+                cursor.close()
+
+
+                
 

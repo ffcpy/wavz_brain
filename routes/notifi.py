@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services.db_service import conn
+from services.db_service import get_conn
 from datetime import datetime
 
 router = APIRouter()
@@ -8,7 +8,7 @@ router = APIRouter()
 # --- Busca notificações do usuário ---
 @router.get("/notifications/{spotify_id}")
 def get_notifications(spotify_id: str):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("""
         SELECT id, tipo, titulo, mensagem, lida, created_at
         FROM notifications
@@ -32,11 +32,11 @@ def get_notifications(spotify_id: str):
 # --- Marca notificação como lida ---
 @router.patch("/notifications/{notification_id}/lida")
 def marcar_lida(notification_id: int):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("""
         UPDATE notifications SET lida = TRUE WHERE id = %s
     """, (notification_id,))
-    conn.commit()
+    get_conn().commit()
     cursor.close()
     return {"status": "ok"}
 
@@ -44,11 +44,11 @@ def marcar_lida(notification_id: int):
 # --- Marca todas como lidas ---
 @router.patch("/notifications/{spotify_id}/todas-lidas")
 def marcar_todas_lidas(spotify_id: str):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("""
         UPDATE notifications SET lida = TRUE WHERE spotify_id = %s
     """, (spotify_id,))
-    conn.commit()
+    get_conn().commit()
     cursor.close()
     return {"status": "ok"}
 
@@ -62,7 +62,7 @@ class ConviteRequest(BaseModel):
 
 @router.post("/notifications/convite-ouvir")
 def convite_ouvir(data: ConviteRequest):
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
 
     # Busca nome de quem está convidando
     cursor.execute("SELECT nome FROM users WHERE spotify_id = %s", (data.de,))
@@ -81,6 +81,6 @@ def convite_ouvir(data: ConviteRequest):
         f"{nome} te chamou pra ouvir junto",
         f"{nome} está ouvindo {data.musica} de {data.artista}. Bora?"
     ))
-    conn.commit()
+    get_conn().commit()
     cursor.close()
     return {"status": "Convite enviado"}

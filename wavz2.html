@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>wavz.</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;
+  --text:#f0ede8;--text2:#888;--text3:#555;
+  --accent:#1DB954;--accent2:#1ed760;
+  --border:#1f1f1f;--border2:#2a2a2a;
+  --radius:16px;--radius-sm:10px;
+  --font-display:'Syne',sans-serif;--font-body:'Inter',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transition:opacity .25s,transform .25s;opacity:0;pointer-events:none;transform:translateY(6px)}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0)}
+
+/* SPLASH */
+#splash{justify-content:space-between;padding:60px 32px 48px}
+.btn-spotify{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:#000;font-size:15px;font-weight:600;padding:16px 24px;border-radius:100px;border:none;cursor:pointer;width:100%;transition:transform .15s}
+.btn-spotify:active{transform:scale(.97)}
+.splash-flow{display:flex;align-items:center;background:var(--bg2);border-radius:var(--radius);padding:18px 10px;border:1px solid var(--border)}
+.flow-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+.flow-icon{width:30px;height:30px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:13px}
+.flow-step p{font-size:9px;color:var(--text2);line-height:1.3}
+.flow-arrow{color:var(--text3);font-size:10px;padding-bottom:12px}
+
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-around;padding:10px 0 22px;background:rgba(10,10,10,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:6px 14px;opacity:.4;transition:opacity .2s;position:relative}
+.nav-item.active{opacity:1}
+.nav-item svg{width:22px;height:22px;stroke:var(--text);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-badge{position:absolute;top:4px;right:10px;width:8px;height:8px;border-radius:50%;background:#ff4444;border:2px solid var(--bg);display:none}
+.nav-badge.show{display:block}
+.nav-center-btn{width:50px;height:50px;border-radius:50%;background:var(--text);display:flex;align-items:center;justify-content:center;margin-top:-14px;box-shadow:0 0 0 5px var(--bg);cursor:pointer;flex-shrink:0}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:50px 20px 14px;flex-shrink:0}
+.header-logo{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.header-logo span{color:var(--accent)}
+.header-title{font-family:var(--font-display);font-size:18px;font-weight:700}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--border2);position:relative;flex-shrink:0}
+.icon-btn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon-badge{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#ff4444;border:2px solid var(--bg);font-size:9px;display:none;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.icon-badge.show{display:flex}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:0 0 100px;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
+
+/* CARDS */
+.live-card{margin:0 20px 24px;background:var(--bg2);border-radius:var(--radius);padding:22px;border:1px solid var(--border)}
+.live-label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+.live-number{font-family:var(--font-display);font-size:50px;font-weight:800;line-height:1;letter-spacing:-2px}
+.live-sub{font-size:13px;color:var(--text2);margin-top:5px}
+.live-avatars{display:flex;margin-top:14px;align-items:center;gap:6px}
+.live-av{width:30px;height:30px;border-radius:50%;border:2px solid var(--bg2);margin-left:-8px;overflow:hidden;background:var(--bg4);flex-shrink:0}
+.live-av:first-child{margin-left:0}
+.live-av img{width:100%;height:100%;object-fit:cover}
+
+/* SECTION */
+.sh{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:10px}
+.sh-title{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-.2px}
+.sh-link{font-size:12px;color:var(--text2);cursor:pointer}
+
+/* EM ALTA */
+.alta-list{display:flex;flex-direction:column;gap:2px;margin:0 20px 24px}
+.alta-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s;text-decoration:none;color:inherit}
+.alta-item:active{background:var(--bg3)}
+.alta-thumb{width:46px;height:46px;border-radius:10px;background:var(--bg3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px}
+.alta-thumb img{width:100%;height:100%;object-fit:cover}
+.alta-info{flex:1;min-width:0}
+.alta-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alta-sub{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alta-count{font-size:12px;color:var(--text2);white-space:nowrap}
+
+/* SESSIONS */
+.sessions-scroll{display:flex;gap:10px;padding:0 20px;overflow-x:auto;scrollbar-width:none;margin-bottom:22px}
+.sessions-scroll::-webkit-scrollbar{display:none}
+.sess-card{flex-shrink:0;width:148px;border-radius:var(--radius);overflow:hidden;background:var(--bg3);cursor:pointer;position:relative}
+.sess-img{width:100%;height:108px;display:flex;align-items:center;justify-content:center;font-size:32px;background:linear-gradient(135deg,var(--bg4),var(--bg3))}
+.sess-info{padding:10px}
+.sess-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess-count{font-size:11px;color:var(--text2);margin-top:2px}
+.sess-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:20px;padding:3px 8px;font-size:10px;color:var(--text)}
+
+/* GENEROS */
+.generos{display:flex;gap:8px;padding:0 20px;overflow-x:auto;scrollbar-width:none;margin-bottom:22px}
+.generos::-webkit-scrollbar{display:none}
+.gen-tag{flex-shrink:0;padding:7px 13px;border-radius:100px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--text)}
+.up{color:var(--accent)}.down{color:#ff4444}
+
+/* NP BAR */
+.np-bar{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;background:rgba(26,26,26,.97);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;z-index:99;cursor:pointer;transition:opacity .3s,transform .3s}
+.np-bar.hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(10px)}
+.np-thumb{width:38px;height:38px;border-radius:8px;background:var(--bg4);flex-shrink:0;overflow:hidden}
+.np-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.np-info{flex:1;min-width:0}
+.np-song{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-artist{font-size:11px;color:var(--text2);margin-top:1px}
+.np-btn{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.np-btn svg{fill:#000;stroke:none}
+
+/* MAP */
+.map-tabs-row{display:flex;gap:8px;padding:10px 20px 0;flex-shrink:0}
+.map-tab{padding:7px 18px;border-radius:100px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.map-tab.active{background:var(--text);color:var(--bg)}
+.map-tab:not(.active){background:var(--bg3);color:var(--text2)}
+.map-area{flex:1;position:relative;overflow:hidden;background:#0d0d0d;margin-top:10px}
+.map-grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.25}
+.map-label{position:absolute;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;pointer-events:none}
+.wave-bubble{position:absolute;border-radius:50%;background:rgba(29,185,84,.1);border:1.5px solid rgba(29,185,84,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s;transform:translate(-50%,-50%)}
+.wave-bubble:active{transform:translate(-50%,-50%) scale(.94)}
+.wb-num{font-family:var(--font-display);font-size:20px;font-weight:800}
+.wb-label{font-size:9px;color:var(--text2);margin-top:1px}
+.user-pin{position:absolute;transform:translate(-50%,-50%)}
+.user-pin-dot{width:14px;height:14px;border-radius:50%;background:var(--text);border:3px solid var(--bg);box-shadow:0 0 0 2px var(--accent)}
+.user-pin-ring{position:absolute;top:50%;left:50%;width:40px;height:40px;border-radius:50%;border:1px solid rgba(29,185,84,.3);transform:translate(-50%,-50%);animation:ring 2s infinite}
+@keyframes ring{0%{width:14px;height:14px;opacity:1}100%{width:60px;height:60px;opacity:0}}
+.other-dot{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:var(--bg3);border:2px solid var(--bg);overflow:hidden;cursor:pointer}
+.other-dot img{width:100%;height:100%;object-fit:cover}
+.other-dot-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px}
+.map-np-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(15,15,15,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;gap:12px}
+.map-np-thumb{width:42px;height:42px;border-radius:10px;background:var(--bg3);flex-shrink:0;overflow:hidden}
+.map-np-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* FEED */
+.feed-tabs-row{display:flex;padding:0 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.feed-tab{padding:7px 13px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+.feed-tab.active{color:var(--text);border-bottom-color:var(--text)}
+.feed-item{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.feed-item:active{background:var(--bg2)}
+.feed-av{width:42px;height:42px;border-radius:50%;background:var(--bg3);flex-shrink:0;overflow:hidden;position:relative}
+.feed-av img{width:100%;height:100%;object-fit:cover}
+.feed-av-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.feed-online{position:absolute;bottom:1px;right:1px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.feed-content{flex:1;min-width:0}
+.feed-user{font-size:13px;font-weight:600}
+.feed-where{font-size:12px;color:var(--text2);margin-top:1px}
+.feed-track{display:flex;align-items:center;gap:10px;margin-top:8px;background:var(--bg3);border-radius:10px;padding:9px;text-decoration:none;color:inherit}
+.feed-track-thumb{width:34px;height:34px;border-radius:7px;background:var(--bg4);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:13px}
+.feed-track-thumb img{width:100%;height:100%;object-fit:cover}
+.feed-track-info{flex:1;min-width:0}
+.feed-track-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-track-artist{font-size:11px;color:var(--text2);margin-top:1px}
+.feed-play{width:26px;height:26px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* NOTIFICATIONS PANEL */
+.notif-panel{position:fixed;inset:0;z-index:200;pointer-events:none}
+.notif-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;transition:opacity .25s;cursor:pointer}
+.notif-sheet{position:absolute;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:430px;background:var(--bg2);border-radius:20px 20px 0 0;border:1px solid var(--border);border-bottom:none;transition:transform .3s;max-height:80vh;display:flex;flex-direction:column}
+.notif-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 0}
+.notif-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px}
+.notif-header-title{font-family:var(--font-display);font-size:16px;font-weight:700}
+.notif-body{overflow-y:auto;flex:1;padding:0 0 32px;scrollbar-width:none}
+.notif-body::-webkit-scrollbar{display:none}
+.notif-panel.open .notif-backdrop{opacity:1;pointer-events:all}
+.notif-panel.open .notif-sheet{transform:translateX(-50%) translateY(0)}
+.notif-panel.open{pointer-events:all}
+.notif-item{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start}
+.notif-item.unread{background:rgba(29,185,84,.04)}
+.notif-icon{width:40px;height:40px;border-radius:50%;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+.notif-content{flex:1;min-width:0}
+.notif-title{font-size:13px;font-weight:600;line-height:1.3}
+.notif-time{font-size:11px;color:var(--text2);margin-top:3px}
+.notif-actions{display:flex;gap:8px;margin-top:10px}
+.notif-btn-accept{flex:1;padding:8px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;cursor:pointer}
+.notif-btn-decline{flex:1;padding:8px;background:var(--bg4);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer}
+
+/* PROFILE */
+.prof-av-wrap{width:78px;height:78px;border-radius:50%;background:var(--bg3);overflow:hidden;margin-bottom:12px;border:3px solid var(--border2)}
+.prof-av-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.prof-name{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.prof-city{font-size:13px;color:var(--text2);margin-top:3px}
+.prof-stats{display:flex;width:100%;margin-top:20px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border)}
+.ps-item{flex:1;padding:14px 8px;text-align:center;border-right:1px solid var(--border)}
+.ps-item:last-child{border-right:none}
+.ps-num{font-family:var(--font-display);font-size:20px;font-weight:800}
+.ps-label{font-size:11px;color:var(--text2);margin-top:2px}
+.prof-section{padding:0 20px;margin-bottom:20px}
+.prof-section-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.place-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.place-item:last-child{border-bottom:none}
+.place-icon{width:34px;height:34px;border-radius:9px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.place-name{font-size:14px;font-weight:500}
+.place-count{font-size:12px;color:var(--text2);margin-top:1px}
+.artist-row{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.artist-row::-webkit-scrollbar{display:none}
+.artist-card{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
+.artist-av{width:62px;height:62px;border-radius:50%;background:var(--bg3);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px}
+.artist-av img{width:100%;height:100%;object-fit:cover}
+.artist-name{font-size:11px;color:var(--text2);text-align:center;max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-btn{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.row-btn:active{background:var(--bg2)}
+.row-btn-icon{width:34px;height:34px;border-radius:9px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.row-btn-icon svg{width:17px;height:17px;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.row-btn-info{flex:1}
+.row-btn-label{font-size:14px;font-weight:500}
+.row-btn-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.row-btn-arrow{width:15px;height:15px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* SETTINGS */
+.settings-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:13px;color:var(--text);font-size:14px;font-family:var(--font-body);outline:none;transition:border-color .2s}
+.settings-input:focus{border-color:var(--accent)}
+.btn-outline{flex:1;padding:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-weight:600;cursor:pointer}
+.btn-accent{flex:1;padding:11px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#000;font-size:13px;font-weight:700;cursor:pointer}
+.btn-danger{width:100%;padding:13px;background:var(--bg3);border:1px solid rgba(255,68,68,.3);border-radius:var(--radius-sm);color:#ff4444;font-size:14px;font-weight:600;cursor:pointer}
+
+/* UTIL */
+.loading{display:flex;align-items:center;justify-content:center;padding:36px;color:var(--text2);font-size:13px;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;color:var(--text2);font-size:13px;text-align:center}
+.toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--bg3);border:1px solid var(--border2);border-radius:100px;padding:9px 18px;font-size:13px;color:var(--text);opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SPLASH -->
+<div class="screen active" id="splash">
+  <div style="padding:0 32px">
+    <div style="font-family:'Syne',sans-serif;font-size:34px;font-weight:800;letter-spacing:-1px;padding-top:60px">wavz<span style="color:#1DB954">.</span></div>
+  </div>
+  <div style="padding:0 32px;margin-top:40px">
+    <h1 style="font-family:'Syne',sans-serif;font-size:40px;font-weight:800;line-height:1.1;letter-spacing:-1px">Sua música.<br>Seu lugar.<br>Seu momento.</h1>
+    <p style="margin-top:14px;font-size:15px;color:var(--text2);line-height:1.6;font-weight:300">Veja o que as pessoas estão ouvindo em tempo real ao seu redor.</p>
+  </div>
+  <div style="padding:0 32px 48px;display:flex;flex-direction:column;gap:18px;margin-top:auto">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex">
+        <span style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px">🎵</span>
+        <span style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-7px">🔥</span>
+        <span style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-7px">🎶</span>
+      </div>
+      <p style="font-size:13px;color:var(--text2)"><strong id="splash-live" style="color:var(--text)">—</strong> pessoas ouvindo agora</p>
+    </div>
+    <button class="btn-spotify" onclick="doLogin()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      Entrar com Spotify
+    </button>
+    <div class="splash-flow">
+      <div class="flow-step"><div class="flow-icon">🎵</div><p>Conecte o Spotify</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-icon">🎧</div><p>Identificamos sua música</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-icon">📍</div><p>Mostramos no mapa</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-icon">👥</div><p>Conecta com pessoas</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="home">
+  <div class="header">
+    <div class="header-logo">wavz<span>.</span></div>
+    <div class="icon-btn" onclick="openNotifPanel()">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <div class="icon-badge" id="notif-badge">0</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="live-card">
+      <div class="live-label"><span class="live-dot"></span>ao vivo agora</div>
+      <div class="live-number" id="live-count">—</div>
+      <div class="live-sub">pessoas ouvindo agora</div>
+      <div class="live-avatars" id="live-avatars"></div>
+    </div>
+    <div class="sh"><div class="sh-title">em alta perto de você</div><div class="sh-link">Ver todas</div></div>
+    <div class="alta-list" id="alta-list"><div class="loading"><div class="spinner"></div>carregando...</div></div>
+    <div class="sh"><div class="sh-title">wavz sessions</div><div class="sh-link">Ver todas</div></div>
+    <div class="sessions-scroll" id="sessions-scroll"><div class="loading"><div class="spinner"></div>carregando...</div></div>
+    <div class="sh"><div class="sh-title">gêneros em alta</div><div class="sh-link">Ver todos</div></div>
+    <div class="generos">
+      <div class="gen-tag">Hip Hop <span class="up">↗</span></div>
+      <div class="gen-tag">Brazilian Funk <span class="up">↗</span></div>
+      <div class="gen-tag">Indie <span class="down">↓</span></div>
+      <div class="gen-tag">Pop <span class="up">↗</span></div>
+      <div class="gen-tag">R&B <span class="up">↗</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="screen" id="map">
+  <div class="header">
+    <div class="header-logo">wavz<span>.</span></div>
+    <div style="display:flex;gap:8px">
+      <div class="icon-btn"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></div>
+      <div class="icon-btn" onclick="centerMap()"><svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></div>
+    </div>
+  </div>
+  <div class="map-tabs-row">
+    <div class="map-tab active">Mapa</div>
+    <div class="map-tab" onclick="navigate('feed')">Feed</div>
+  </div>
+  <div class="map-area" id="map-area">
+    <div class="map-grid-bg"></div>
+    <div id="map-labels"></div>
+    <div id="map-waves"></div>
+    <div id="map-users"></div>
+    <div class="user-pin" id="user-pin" style="display:none">
+      <div class="user-pin-ring"></div>
+      <div class="user-pin-dot"></div>
+    </div>
+    <div id="map-no-loc" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text2);font-size:13px;text-align:center;padding:20px">
+      <span style="font-size:32px">📍</span>
+      <span>Aguardando localização...<br>Permita o acesso à localização</span>
+      <button onclick="requestLocation()" style="padding:10px 20px;background:var(--accent);border:none;border-radius:100px;color:#000;font-size:13px;font-weight:700;cursor:pointer">Permitir localização</button>
+    </div>
+    <div class="map-np-bar" id="map-np-bar">
+      <div class="map-np-thumb"><img id="map-np-img" src="" onerror="this.style.display='none'" alt="" style="display:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="map-np-song">Nada tocando</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px" id="map-np-artist">Abra o Spotify</div>
+      </div>
+      <div id="map-np-btn" style="width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="#000"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEED -->
+<div class="screen" id="feed">
+  <div class="header">
+    <div class="header-title">Feed</div>
+    <div class="icon-btn" onclick="showToast('Em breve: buscar pessoas')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+  </div>
+  <div class="feed-tabs-row">
+    <div class="feed-tab active" onclick="setFeedTab(this,'todos')">Todos</div>
+    <div class="feed-tab" onclick="setFeedTab(this,'amigos')">Amigos</div>
+    <div class="feed-tab" onclick="setFeedTab(this,'global')">Global</div>
+  </div>
+  <div class="content">
+    <div id="feed-list"><div class="loading"><div class="spinner"></div>carregando...</div></div>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="profile">
+  <div class="content">
+    <div style="display:flex;justify-content:flex-end;padding:50px 20px 0">
+      <div class="icon-btn" onclick="goSettings()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 20px 20px">
+      <div class="prof-av-wrap">
+        <img id="prof-img" src="" onerror="this.style.display='none'" alt="">
+        <div id="prof-ph" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px">👤</div>
+      </div>
+      <div class="prof-name" id="prof-name">—</div>
+      <div class="prof-city" id="prof-city">São Paulo, SP</div>
+      <div class="prof-stats">
+        <div class="ps-item"><div class="ps-num" id="ps-amigos">0</div><div class="ps-label">amigos</div></div>
+        <div class="ps-item"><div class="ps-num" id="ps-plays">0</div><div class="ps-label">plays</div></div>
+        <div class="ps-item"><div class="ps-num" id="ps-lugares">0</div><div class="ps-label">lugares</div></div>
+      </div>
+    </div>
+    <div class="prof-section">
+      <div class="prof-section-title">lugares favoritos</div>
+      <div id="lugares-list"><div class="loading"><div class="spinner"></div>carregando...</div></div>
+    </div>
+    <div class="prof-section">
+      <div class="prof-section-title">artistas em alta pra você</div>
+      <div class="artist-row" id="artists-row"><div class="loading"><div class="spinner"></div>carregando...</div></div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:0 0 8px"></div>
+    <div class="row-btn" onclick="openNotifPanel()">
+      <div class="row-btn-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+      <div class="row-btn-info"><div class="row-btn-label">Notificações</div><div class="row-btn-sub">Sugestões de amizade e mais</div></div>
+      <svg class="row-btn-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="row-btn" onclick="goSettings()">
+      <div class="row-btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+      <div class="row-btn-info"><div class="row-btn-label">Configurações</div><div class="row-btn-sub">Backend e preferências</div></div>
+      <svg class="row-btn-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="row-btn" onclick="doLogout()">
+      <div class="row-btn-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+      <div class="row-btn-info"><div class="row-btn-label">Sair</div><div class="row-btn-sub">Desconectar conta Spotify</div></div>
+      <svg class="row-btn-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="settings">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="goBack()">
+      <svg viewBox="0 0 24 24" width="20" height="20" style="stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round"><polyline points="15 18 9 12 15 6"/></svg>
+      <div class="header-title">Configurações</div>
+    </div>
+  </div>
+  <div class="content" style="padding:20px">
+    <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:10px">URL do Backend</div>
+    <input class="settings-input" id="backend-url-input" type="url" placeholder="https://xxx.ngrok-free.app">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-outline" onclick="testConnection()">Testar</button>
+      <button class="btn-accent" onclick="saveBackendUrl()">Salvar</button>
+    </div>
+    <div id="conn-result" style="margin-top:10px;font-size:13px;text-align:center;min-height:18px;color:var(--text2)"></div>
+    <div style="height:1px;background:var(--border);margin:22px 0"></div>
+    <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:10px">Conta conectada</div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:13px;display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--bg4);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px" id="settings-av">👤</div>
+      <div><div style="font-size:14px;font-weight:600" id="settings-name">—</div><div style="font-size:12px;color:var(--text2)" id="settings-id">—</div></div>
+    </div>
+    <button class="btn-danger" onclick="doLogout()">Sair da conta</button>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS PANEL -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-backdrop" onclick="closeNotifPanel()"></div>
+  <div class="notif-sheet">
+    <div class="notif-handle"></div>
+    <div class="notif-header">
+      <div class="notif-header-title">Notificações</div>
+      <div style="font-size:12px;color:var(--text2);cursor:pointer" onclick="markAllRead()">Marcar todas como lidas</div>
+    </div>
+    <div class="notif-body" id="notif-list"><div class="loading"><div class="spinner"></div>carregando...</div></div>
+  </div>
+</div>
+
+<!-- NOW PLAYING BAR -->
+<div class="np-bar hidden" id="np-bar">
+  <div class="np-thumb"><img id="np-img" src="" onerror="this.style.display='none'" alt="" style="display:none"></div>
+  <div class="np-info">
+    <div class="np-song" id="np-song">—</div>
+    <div class="np-artist" id="np-artist">—</div>
+  </div>
+  <div class="np-btn" id="np-btn"><svg viewBox="0 0 24 24" width="10" height="10"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+</div>
+
+<!-- NAV -->
+<nav class="nav" id="main-nav" style="display:none">
+  <div class="nav-item" id="nav-home" onclick="navigate('home')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </div>
+  <div class="nav-item" id="nav-map" onclick="navigate('map')">
+    <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+  </div>
+  <div class="nav-center-btn" onclick="navigate('home')">
+    <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--bg)">w.</span>
+  </div>
+  <div class="nav-item" id="nav-feed" onclick="navigate('feed')">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <div class="nav-badge" id="nav-notif-badge"></div>
+  </div>
+  <div class="nav-item" id="nav-profile" onclick="navigate('profile')">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const EMOJIS=['🎵','🎶','🎸','🎹','🎤','🎧','🎼','🥁'];
+const SESS_EMOJIS=['🎉','🌙','🔥','⚡','🎸','🇧🇷','🎤','🌊'];
+let BASE_URL=localStorage.getItem('wavz_backend')||'http://127.0.0.1:8000';
+let auth=JSON.parse(localStorage.getItem('wavz_auth')||'null');
+let currentScreen='splash';
+let prevScreen='home';
+let currentTrack=null;
+let userLat=null,userLng=null;
+let mapInitialized=false;
+
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+
+// offset de privacidade ~300-500m
+function privacyOffset(lat,lng){
+  const offsetLat=(Math.random()-.5)*0.006;
+  const offsetLng=(Math.random()-.5)*0.008;
+  return[lat+offsetLat,lng+offsetLng];
+}
+
+function showToast(msg,dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentScreen=id;
+  const noNav=['splash','settings'];
+  document.getElementById('main-nav').style.display=noNav.includes(id)?'none':'flex';
+  document.getElementById('np-bar').classList.toggle('hidden',noNav.includes(id)||!currentTrack);
+  ['home','map','feed','profile'].forEach(n=>{
+    document.getElementById('nav-'+n)?.classList.toggle('active',n===id);
+  });
+}
+
+function navigate(screen){
+  prevScreen=currentScreen;
+  showScreen(screen);
+  if(screen==='home')loadHome();
+  else if(screen==='feed')loadFeed('todos');
+  else if(screen==='profile')loadProfile();
+  else if(screen==='map')loadMap();
+}
+
+function goBack(){showScreen(prevScreen);}
+function goSettings(){
+  prevScreen=currentScreen;
+  document.getElementById('backend-url-input').value=BASE_URL;
+  if(auth){
+    document.getElementById('settings-name').textContent=auth.nome||'—';
+    document.getElementById('settings-id').textContent=auth.spotify_id||'—';
+    if(auth.foto_url){
+      document.getElementById('settings-av').innerHTML=`<img src="${auth.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">`;
+    }
+  }
+  showScreen('settings');
+}
+
+async function api(path,opts={}){
+  try{
+    const r=await fetch(BASE_URL+path,{headers:{'ngrok-skip-browser-warning':'true','Content-Type':'application/json'},...opts});
+    if(!r.ok)return null;
+    return await r.json();
+  }catch{return null;}
+}
+
+async function doLogin(){
+  const data=await api('/login');
+  if(data&&data.login_url){window.location.href=data.login_url;}
+  else{
+    auth={spotify_id:'demo_user',nome:'Demo',foto_url:''};
+    localStorage.setItem('wavz_auth',JSON.stringify(auth));
+    afterLogin();showToast('Modo demo ativado');
+  }
+}
+
+function afterLogin(){
+  showScreen('home');
+  document.getElementById('main-nav').style.display='flex';
+  loadHome();
+  requestLocation();
+  pollNotifications();
+}
+
+function doLogout(){
+  auth=null;currentTrack=null;userLat=null;userLng=null;mapInitialized=false;
+  localStorage.removeItem('wavz_auth');
+  document.getElementById('np-bar').classList.add('hidden');
+  showScreen('splash');
+  document.getElementById('main-nav').style.display='none';
+}
+
+// LOCATION
+function requestLocation(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLat=pos.coords.latitude;
+    userLng=pos.coords.longitude;
+    document.getElementById('map-no-loc').style.display='none';
+    sendLocation();
+    if(currentScreen==='map')renderMap();
+  },()=>{},{enableHighAccuracy:true,timeout:10000});
+}
+
+function sendLocation(){
+  if(!auth||!userLat||auth.spotify_id==='demo_user')return;
+  fetch(BASE_URL+'/users/location',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
+    body:JSON.stringify({spotify_id:auth.spotify_id,latitude:userLat,longitude:userLng})
+  }).catch(()=>{});
+}
+
+function centerMap(){
+  if(userLat)renderMap();
+  else requestLocation();
+}
+
+// NOW PLAYING
+function setNpBar(track){
+  if(!track||!track.musica||track.musica==='Nenhuma música tocando'){
+    currentTrack=null;
+    document.getElementById('np-bar').classList.add('hidden');
+    return;
+  }
+  currentTrack=track;
+  document.getElementById('np-song').textContent=track.musica;
+  document.getElementById('np-artist').textContent=track.artista||'—';
+  const img=document.getElementById('np-img');
+  if(track.capa_url){img.src=track.capa_url;img.style.display='block';}
+  else img.style.display='none';
+  document.getElementById('np-btn').onclick=()=>{if(track.spotify_url)window.open(track.spotify_url,'_blank');};
+  if(!['splash','settings'].includes(currentScreen))document.getElementById('np-bar').classList.remove('hidden');
+  // map np
+  document.getElementById('map-np-song').textContent=track.musica;
+  document.getElementById('map-np-artist').textContent=track.artista||'—';
+  const mimg=document.getElementById('map-np-img');
+  if(track.capa_url){mimg.src=track.capa_url;mimg.style.display='block';}
+  document.getElementById('map-np-btn').onclick=()=>{if(track.spotify_url)window.open(track.spotify_url,'_blank');};
+}
+
+// HOME
+async function loadHome(){
+  const uid=auth?.spotify_id;
+  const av=await api('/ao-vivo');
+  if(av){
+    const n=av.ao_vivo_agora||0;
+    document.getElementById('live-count').textContent=n.toLocaleString('pt-BR');
+    document.getElementById('splash-live').textContent=n.toLocaleString('pt-BR');
+    const avEl=document.getElementById('live-avatars');
+    avEl.innerHTML='<div class="live-av" style="display:flex;align-items:center;justify-content:center;font-size:13px">🎵</div><div class="live-av" style="display:flex;align-items:center;justify-content:center;font-size:13px">🔥</div><div class="live-av" style="display:flex;align-items:center;justify-content:center;font-size:13px">🎶</div>';
+    if(n>3)avEl.innerHTML+=`<span style="font-size:11px;color:var(--text2);margin-left:6px">+${n-3} ouvindo</span>`;
+  }
+  if(uid&&uid!=='demo_user'){
+    const track=await api('/musica_atual?spotify_id='+uid);
+    setNpBar(track);
+  }
+  const alta=uid?await api('/em-alta?spotify_id='+uid):null;
+  const altaEl=document.getElementById('alta-list');
+  if(alta&&alta.length){
+    altaEl.innerHTML=alta.map(a=>`
+      <a class="alta-item" ${a.spotify_url?`href="${a.spotify_url}" target="_blank"`:'href="#" onclick="return false"'}>
+        <div class="alta-thumb">${a.capa_url?`<img src="${a.capa_url}" alt="">`:rnd(EMOJIS)}</div>
+        <div class="alta-info">
+          <div class="alta-name">${a.artista||'—'}</div>
+          <div class="alta-sub">${a.territorio||'Perto de você'}</div>
+        </div>
+        <div class="alta-count">${a.ouvindo||a.score||0} ouvindo</div>
+      </a>`).join('');
+  }else{
+    altaEl.innerHTML='<div class="empty">🎵<span>Nenhuma música em alta ainda</span></div>';
+  }
+  const sessions=await api('/sessions');
+  const sessEl=document.getElementById('sessions-scroll');
+  if(sessions&&sessions.length){
+    sessEl.innerHTML=sessions.map((s,i)=>`
+      <div class="sess-card">
+        <div class="sess-img">${SESS_EMOJIS[i%SESS_EMOJIS.length]}</div>
+        <div class="sess-info">
+          <div class="sess-name">${s.artista||'Wave'}</div>
+          <div class="sess-count">${s.total_users||0} ouvindo agora</div>
+        </div>
+        <div class="sess-badge">👥 ${s.territorio||''}</div>
+      </div>`).join('');
+  }else{
+    sessEl.innerHTML='<div class="empty" style="width:200px;padding:24px">🌊<span>Nenhuma wave ativa</span></div>';
+  }
+}
+
+// FEED
+function setFeedTab(el,tab){
+  document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadFeed(tab);
+}
+
+async function loadFeed(tab='todos'){
+  const feedEl=document.getElementById('feed-list');
+  feedEl.innerHTML='<div class="loading"><div class="spinner"></div>carregando...</div>';
+  const data=await api('/feed');
+  if(data&&data.length){
+    feedEl.innerHTML=data.map(f=>`
+      <div class="feed-item">
+        <div class="feed-av">
+          ${f.foto_url?`<img src="${f.foto_url}" onerror="this.outerHTML='<div class=feed-av-ph>👤</div>'" alt="">`:
+          '<div class="feed-av-ph">👤</div>'}
+          <div class="feed-online"></div>
+        </div>
+        <div class="feed-content">
+          <div class="feed-user">${f.nome||f.spotify_id||'usuário'}</div>
+          <div class="feed-where">ouvindo em ${f.territorio||'São Paulo'}</div>
+          <a class="feed-track" ${f.spotify_url?`href="${f.spotify_url}" target="_blank"`:'href="#" onclick="return false"'}>
+            <div class="feed-track-thumb">
+              ${f.capa_url?`<img src="${f.capa_url}" alt="">`:rnd(EMOJIS)}
+            </div>
+            <div class="feed-track-info">
+              <div class="feed-track-name">${f.musica||'—'}</div>
+              <div class="feed-track-artist">${f.artista||'—'}</div>
+            </div>
+            <div class="feed-play"><svg viewBox="0 0 24 24" width="10" height="10" fill="var(--text2)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+          </a>
+        </div>
+      </div>`).join('');
+  }else{
+    feedEl.innerHTML='<div class="empty">🎶<span>Nenhuma atividade recente.<br>Comece a ouvir no Spotify!</span></div>';
+  }
+}
+
+// MAP
+async function loadMap(){
+  if(userLat)renderMap();
+  else requestLocation();
+  if(auth&&auth.spotify_id!=='demo_user'){
+    const track=await api('/musica_atual?spotify_id='+auth.spotify_id);
+    if(track)setNpBar(track);
+  }
+}
+
+async function renderMap(){
+  if(!userLat)return;
+  document.getElementById('map-no-loc').style.display='none';
+  const mapArea=document.getElementById('map-area');
+  const W=mapArea.clientWidth||375;
+  const H=mapArea.clientHeight||400;
+  // pino do usuário
+  const pin=document.getElementById('user-pin');
+  pin.style.display='block';
+  pin.style.left=(W/2)+'px';
+  pin.style.top=(H/2-40)+'px';
+  // waves
+  const waves=await api('/waves/ativas');
+  const wavesEl=document.getElementById('map-waves');
+  wavesEl.innerHTML='';
+  const labelsEl=document.getElementById('map-labels');
+  labelsEl.innerHTML='';
+  if(waves&&waves.length){
+    waves.forEach((w,i)=>{
+      const angles=[315,45,180,270,135];
+      const dists=[80,120,100,90,110];
+      const angle=(angles[i%angles.length])*Math.PI/180;
+      const dist=dists[i%dists.length];
+      const cx=W/2+Math.cos(angle)*dist;
+      const cy=H/2-40+Math.sin(angle)*dist;
+      const size=Math.max(70,Math.min(130,60+(w.total_users||1)*8));
+      const bubble=document.createElement('div');
+      bubble.className='wave-bubble';
+      bubble.style.cssText=`width:${size}px;height:${size}px;left:${cx}px;top:${cy}px`;
+      bubble.innerHTML=`<div class="wb-num">${w.total_users||0}</div><div class="wb-label">ouvindo</div>`;
+      bubble.onclick=()=>showToast(`Wave: ${w.artista} — ${w.territorio||'Território'}`);
+      wavesEl.appendChild(bubble);
+      const lbl=document.createElement('div');
+      lbl.className='map-label';
+      lbl.style.cssText=`left:${cx-30}px;top:${cy-size/2-18}px`;
+      lbl.textContent=(w.territorio||w.artista||'').toUpperCase().substring(0,15);
+      labelsEl.appendChild(lbl);
+    });
+  }
+  // outros usuários (feed com offset de privacidade)
+  const feed=await api('/feed');
+  const usersEl=document.getElementById('map-users');
+  usersEl.innerHTML='';
+  if(feed&&feed.length){
+    feed.slice(0,8).forEach((f,i)=>{
+      const angle=(i/8)*Math.PI*2;
+      const dist=60+Math.random()*100;
+      const cx=W/2+Math.cos(angle)*dist;
+      const cy=H/2-40+Math.sin(angle)*dist;
+      const dot=document.createElement('div');
+      dot.className='other-dot';
+      dot.style.cssText=`left:${cx}px;top:${cy}px`;
+      dot.innerHTML=f.foto_url?`<img src="${f.foto_url}" onerror="this.outerHTML='<div class=other-dot-placeholder>${rnd(EMOJIS)}</div>'" alt="">`:
+        `<div class="other-dot-placeholder">${rnd(EMOJIS)}</div>`;
+      dot.onclick=()=>showToast(`${f.nome||'usuário'} ouve ${f.artista||'—'}`);
+      usersEl.appendChild(dot);
+    });
+  }
+}
+
+// NOTIFICATIONS
+async function pollNotifications(){
+  if(!auth||auth.spotify_id==='demo_user')return;
+  const data=await api('/notifications/'+auth.spotify_id);
+  if(data){
+    const unread=data.filter(n=>!n.lida).length;
+    const badge=document.getElementById('notif-badge');
+    const navBadge=document.getElementById('nav-notif-badge');
+    if(unread>0){
+      badge.textContent=unread>9?'9+':unread;
+      badge.classList.add('show');
+      navBadge.classList.add('show');
+    }else{
+      badge.classList.remove('show');
+      navBadge.classList.remove('show');
+    }
+  }
+  setTimeout(pollNotifications,30000);
+}
+
+async function openNotifPanel(){
+  document.getElementById('notif-panel').classList.add('open');
+  await loadNotifications();
+}
+
+function closeNotifPanel(){
+  document.getElementById('notif-panel').classList.remove('open');
+}
+
+async function loadNotifications(){
+  const listEl=document.getElementById('notif-list');
+  if(!auth||auth.spotify_id==='demo_user'){
+    listEl.innerHTML='<div class="empty">🔔<span>Faça login para ver notificações</span></div>';
+    return;
+  }
+  listEl.innerHTML='<div class="loading"><div class="spinner"></div>carregando...</div>';
+  const data=await api('/notifications/'+auth.spotify_id);
+  if(!data||!data.length){
+    listEl.innerHTML='<div class="empty">🔔<span>Nenhuma notificação ainda.<br>Quando você estiver perto de alguém ouvindo o mesmo artista, o Wavz vai sugerir conexão!</span></div>';
+    return;
+  }
+  listEl.innerHTML=data.map(n=>{
+    const isSugestao=n.tipo==='amigo_sugestao';
+    const isAceito=n.tipo==='amigo_convite'&&n.mensagem&&n.mensagem.includes('aceito');
+    const icon=isSugestao?'🎵':isAceito?'✅':'🔔';
+    const actions=isSugestao&&!n.lida?`
+      <div class="notif-actions">
+        <button class="notif-btn-accept" onclick="respondFriend(${n.id},'${n.friend_id}',true,this)">Conectar 🎵</button>
+        <button class="notif-btn-decline" onclick="respondFriend(${n.id},'${n.friend_id}',false,this)">Ignorar</button>
+      </div>`:'';
+    return`<div class="notif-item${n.lida?'':' unread'}" id="notif-${n.id}">
+      <div class="notif-icon">${icon}</div>
+      <div class="notif-content">
+        <div class="notif-title">${n.titulo}</div>
+        ${isSugestao&&n.artista?`<div style="font-size:12px;color:var(--accent);margin-top:3px">🎵 ${n.artista}</div>`:''}
+        <div class="notif-time">${n.created_at}</div>
+        ${actions}
+      </div>
+    </div>`;
+  }).join('');
+  // atualiza badge
+  const unread=data.filter(n=>!n.lida).length;
+  if(unread===0){
+    document.getElementById('notif-badge').classList.remove('show');
+    document.getElementById('nav-notif-badge').classList.remove('show');
+  }
+}
+
+async function respondFriend(notifId,friendId,aceito,btn){
+  btn.disabled=true;
+  btn.parentNode.innerHTML=aceito?'<span style="color:var(--accent);font-size:13px">✓ Conectado!</span>':'<span style="color:var(--text2);font-size:13px">Ignorado</span>';
+  const res=await api('/friends/respond',{
+    method:'POST',
+    body:JSON.stringify({
+      spotify_id:auth.spotify_id,
+      friend_id:friendId,
+      notification_id:notifId,
+      aceito:aceito
+    })
+  });
+  if(res&&aceito)showToast('Conexão feita! 🎵');
+  document.getElementById('notif-'+notifId)?.classList.remove('unread');
+  pollNotifications();
+}
+
+async function markAllRead(){
+  if(!auth||auth.spotify_id==='demo_user')return;
+  await api('/notifications/'+auth.spotify_id+'/todas-lidas',{method:'PATCH'});
+  document.getElementById('notif-badge').classList.remove('show');
+  document.getElementById('nav-notif-badge').classList.remove('show');
+  await loadNotifications();
+}
+
+// PROFILE
+async function loadProfile(){
+  if(!auth)return;
+  document.getElementById('prof-name').textContent=auth.nome||'—';
+  if(auth.foto_url){
+    document.getElementById('prof-img').src=auth.foto_url;
+    document.getElementById('prof-img').style.display='block';
+    document.getElementById('prof-ph').style.display='none';
+  }
+  if(auth.spotify_id==='demo_user'){
+    document.getElementById('ps-plays').textContent='0';
+    document.getElementById('ps-amigos').textContent='0';
+    document.getElementById('ps-lugares').textContent='0';
+    document.getElementById('lugares-list').innerHTML='<div class="empty">📍<span>Nenhum lugar registrado ainda</span></div>';
+    document.getElementById('artists-row').innerHTML='<div class="empty">🎤<span>Nenhum artista ainda</span></div>';
+    return;
+  }
+  const data=await api('/users/'+auth.spotify_id+'/profile');
+  if(data&&!data.erro){
+    document.getElementById('ps-amigos').textContent=data.total_amigos||0;
+    document.getElementById('ps-plays').textContent=(data.total_plays||0).toLocaleString('pt-BR');
+    document.getElementById('ps-lugares').textContent=data.total_lugares||0;
+    const lEl=document.getElementById('lugares-list');
+    if(data.lugares_favoritos&&data.lugares_favoritos.length){
+      lEl.innerHTML=data.lugares_favoritos.map(l=>`
+        <div class="place-item">
+          <div class="place-icon">📍</div>
+          <div class="place-info"><div class="place-name">${l.territorio}</div><div class="place-count">${l.visitas} visitas</div></div>
+        </div>`).join('');
+    }else lEl.innerHTML='<div class="empty">📍<span>Nenhum lugar ainda</span></div>';
+    const aEl=document.getElementById('artists-row');
+    if(data.artistas_em_alta&&data.artistas_em_alta.length){
+      aEl.innerHTML=data.artistas_em_alta.map(a=>`
+        <div class="artist-card">
+          <div class="artist-av">${rnd(EMOJIS)}</div>
+          <div class="artist-name">${a.artista}</div>
+        </div>`).join('');
+    }else aEl.innerHTML='<div class="empty">🎤<span>Nenhum artista ainda</span></div>';
+  }else{
+    ['ps-plays','ps-amigos','ps-lugares'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('lugares-list').innerHTML='<div class="empty">📍<span>Nenhum dado disponível</span></div>';
+    document.getElementById('artists-row').innerHTML='<div class="empty">🎤<span>Nenhum dado disponível</span></div>';
+  }
+}
+
+// SETTINGS
+async function testConnection(){
+  const url=document.getElementById('backend-url-input').value.trim();
+  const res=document.getElementById('conn-result');
+  res.style.color='var(--text2)';res.textContent='Testando...';
+  try{
+    const r=await fetch(url+'/ao-vivo',{headers:{'ngrok-skip-browser-warning':'true'}});
+    if(r.ok){res.style.color='var(--accent)';res.textContent='✓ Conexão OK!';}
+    else{res.style.color='#ff4444';res.textContent='✗ Erro '+r.status;}
+  }catch{res.style.color='#ff4444';res.textContent='✗ Sem conexão';}
+}
+
+function saveBackendUrl(){
+  const url=document.getElementById('backend-url-input').value.trim();
+  if(url){BASE_URL=url;localStorage.setItem('wavz_backend',url);showToast('URL salva!');goBack();}
+}
+
+// CALLBACK PARAMS
+const params=new URLSearchParams(window.location.search);
+if(params.get('spotify_id')){
+  auth={
+    spotify_id:params.get('spotify_id'),
+    nome:params.get('nome')||'—',
+    foto_url:params.get('foto_url')||''
+  };
+  localStorage.setItem('wavz_auth',JSON.stringify(auth));
+  window.history.replaceState({},'',window.location.pathname);
+}
+
+// INIT
+if(auth){afterLogin();}
+else{
+  showScreen('splash');
+  api('/ao-vivo').then(av=>{
+    if(av)document.getElementById('splash-live').textContent=(av.ao_vivo_agora||0).toLocaleString('pt-BR');
+  });
+}
+</script>
+</body>
+</html>

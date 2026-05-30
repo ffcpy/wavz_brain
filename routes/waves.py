@@ -1,11 +1,11 @@
 from fastapi import APIRouter
-from services.db_service import conn
+from services.db_service import get_conn
 
 router = APIRouter()
 
 @router.get("/waves/ativas")
 def get_waves_ativa():
-    cursor = conn.cursor()
+    cursor = get_conn().cursor()
     cursor.execute("""
         SELECT w.id, 
             w.artista,

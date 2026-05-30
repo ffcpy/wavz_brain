@@ -2,11 +2,12 @@ from fastapi import Request
 import os
 from dotenv import load_dotenv
 import requests
-from fastapi import APIRouter
+from fastapi import APIRouter 
 from urllib.parse import urlencode
-from services.db_service import save_user, conn
+from services.db_service import save_user,get_conn
 from services.config import *
 import secrets
+from fastapi.responses import RedirectResponse
 
 
 router = APIRouter()
@@ -93,7 +94,7 @@ def callback(request: Request):
     nome = user_data["display_name"]
 
     # Verifica se já existe e atualiza ou insere novo
-    db_cursor = conn.cursor()
+    db_cursor = get_conn().cursor()
     db_cursor.execute("SELECT spotify_id FROM users WHERE spotify_id = %s", (spotify_id,))
     existing = db_cursor.fetchone()
 
@@ -102,14 +103,24 @@ def callback(request: Request):
             "UPDATE users SET access_token = %s, refresh_token = %s,is_active = TRUE WHERE spotify_id = %s",
             (access_token, refresh_token, spotify_id)
         )
-        conn.commit()
+        get_conn().commit()
     else:
         save_user(spotify_id=spotify_id, nome=nome, access_token=access_token, refresh_token=refresh_token)
 
     db_cursor.close()
     
     #teste
+    foto_url = user_data.get("images", [{}])[0].get("url", "") if user_data.get("images") else ""
 
+    params = urlencode({
+        "spotify_id": spotify_id,
+        "nome": nome,
+        "access_token": access_token,
+        "foto_url": foto_url
+    })
+    return RedirectResponse(url=f"/app?{params}")
+
+"""
     return {
         #SE UM DIA FRONT PRECISAR EU CHAMO SPOTIFY ID AQUI
         "spotify_id": spotify_id,
@@ -118,3 +129,5 @@ def callback(request: Request):
         }
     
         #return {"message": "Usuário já existe"}
+
+        """

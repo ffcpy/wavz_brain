@@ -1,11 +1,41 @@
-import mysql.connector
+#import mysql.connector
+import pymysql 
 from dotenv import load_dotenv
 import os 
 from .config import *
 import requests
+from dbutils.pooled_db import PooledDB
+"""
+load_dotenv()
+conn = pymysql.connect(
+    host="localhost",
+    user="root",
+    password=os.getenv("MYSQL_PASSWORD"),
+    database="wavz")
 
 load_dotenv()
+"""
+pool = PooledDB(
+    creator=pymysql,
+    maxconnections=10,
+    mincached=2,
+    host="localhost",
+    user="root",
+    password=os.getenv("MYSQL_PASSWORD"),
+    database="wavz",
+    cursorclass=pymysql.cursors.Cursor,
+    autocommit=False
+    )
 
+def get_conn():
+    return pool.connection()
+
+conn = get_conn()
+
+
+
+
+"""
 conn = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -13,7 +43,7 @@ conn = mysql.connector.connect(
     database="wavz"
 )
 cursor = conn.cursor()
-
+"""
 def refresh_access_token(refresh_token):
 
     token_url = "https://accounts.spotify.com/api/token"
